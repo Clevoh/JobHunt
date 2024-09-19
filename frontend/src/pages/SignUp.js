@@ -5,9 +5,15 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { useDispatch } from 'react-redux';
-import { userSignUpAction } from '../redux/actions/userAction'; // Import your signup action
+import { userSignUpAction } from '../redux/actions/userAction';
 
 const validationSchema = yup.object({
+  firstName: yup
+    .string('Enter your first name')
+    .required('First name is required'),
+  lastName: yup
+    .string('Enter your last name')
+    .required('Last name is required'),
   email: yup
     .string('Enter your email')
     .email('Enter a valid email')
@@ -23,12 +29,14 @@ const SignUp = () => {
 
   const formik = useFormik({
     initialValues: {
+      firstName: '',
+      lastName: '',
       email: '',
       password: '',
     },
     validationSchema: validationSchema,
     onSubmit: (values) => {
-      dispatch(userSignUpAction(values)); // Dispatch signup action
+      dispatch(userSignUpAction(values));
     },
   });
 
@@ -43,6 +51,30 @@ const SignUp = () => {
           </Avatar>
           <TextField
             fullWidth
+            id="firstName"
+            name="firstName"
+            label="First Name"
+            value={formik.values.firstName}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.firstName && Boolean(formik.errors.firstName)}
+            helperText={formik.touched.firstName && formik.errors.firstName}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            id="lastName"
+            name="lastName"
+            label="Last Name"
+            value={formik.values.lastName}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.lastName && Boolean(formik.errors.lastName)}
+            helperText={formik.touched.lastName && formik.errors.lastName}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
             id="email"
             name="email"
             label="Email"
@@ -51,7 +83,7 @@ const SignUp = () => {
             onBlur={formik.handleBlur}
             error={formik.touched.email && Boolean(formik.errors.email)}
             helperText={formik.touched.email && formik.errors.email}
-            sx={{ mb: 3 }}
+            sx={{ mb: 2 }}
           />
           <TextField
             fullWidth
@@ -64,7 +96,7 @@ const SignUp = () => {
             onBlur={formik.handleBlur}
             error={formik.touched.password && Boolean(formik.errors.password)}
             helperText={formik.touched.password && formik.errors.password}
-            sx={{ mb: 3 }}
+            sx={{ mb: 2 }}
           />
           <Button fullWidth variant="contained" type="submit">
             Sign Up
