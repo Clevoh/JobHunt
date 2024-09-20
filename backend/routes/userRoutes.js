@@ -1,23 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const { allUsers, singleUser, editUser, deleteUser, createUserJobsHistory } = require('../controllers/userController');
+const {
+  allUsers,
+  singleUser,
+  editUser,
+  deleteUser,
+  createUserJobsHistory,
+  signup,
+  signin,
+  userProfile
+} = require('../controllers/userController');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 
+// User routes
 
-//user routes
+// Sign up a new user
+router.post('/signup', signup);
 
-// /api/allusers
+// Sign in an existing user
+router.post('/signin', signin);
+
+// Get user profile (Authenticated user)
+router.get('/profile', isAuthenticated, userProfile);
+
+// Get all users (Admin only)
 router.get('/allusers', isAuthenticated, isAdmin, allUsers);
-// /api/user/id
+
+// Get a single user by ID
 router.get('/user/:id', isAuthenticated, singleUser);
-// /api/user/edit/id
+
+// Edit user details by ID
 router.put('/user/edit/:id', isAuthenticated, editUser);
-// /api/admin/user/delete/id
+
+// Delete a user by ID (Admin only)
 router.delete('/admin/user/delete/:id', isAuthenticated, isAdmin, deleteUser);
-// /api/user/jobhistory
+
+// Create or update user job history
 router.post('/user/jobhistory', isAuthenticated, createUserJobsHistory);
-
-
-
 
 module.exports = router;

@@ -1,114 +1,164 @@
 const User = require('../models/userModel');
 const ErrorResponse = require('../utils/errorResponse');
 
-//load all users
-exports.allUsers = async (req, res, next) => {
-    //enable pagination
-    const pageSize = 10;
-    const page = Number(req.query.pageNumber) || 1;
-    const count = await User.find({}).estimatedDocumentCount();
+// Sign up new user
+exports.signup = async (req, res, next) => {
+    const { firstName, lastName, email, password } = req.body;
+
+    // Check if all required fields are provided
+    if (!firstName || !lastName || !email || !password) {
+        return next(new ErrorResponse("All fields are required", 400));
+    }
 
     try {
-        const users = await User.find().sort({ createdAt: -1 }).select('-password')
-            .skip(pageSize * (page - 1))
-            .limit(pageSize)
+        const userExist = await User.findOne({ email });
+        if (userExist) {
+            return next(new ErrorResponse("E-mail already registered", 400));
+        }
 
-        res.status(200).json({
+        const user = await User.create({ firstName, lastName, email, password });
+        res.status(201).json({
             success: true,
-            users,
-            page,
-            pages: Math.ceil(count / pageSize),
-            count
-
-        })
-        next();
+            user
+        });
     } catch (error) {
-        return next(error);
+        console.error(error); // Log error for debugging
+        next(error);
     }
 }
 
-//show single user
+// Sign in user
+exports.signin = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validation
+        if (!email) {
+            return next(new ErrorResponse("Please add an email", 400));
+        }
+        if (!password) {
+            return next(new ErrorResponse("Please add a password", 400));
+        }
+
+        // Check user email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return next(new ErrorResponse("Invalid credentials", 400));
+        }
+
+        // Check password
+        const isMatched = await user.comparePassword(password);
+        if (!isMatched) {
+            return next(new ErrorResponse("Invalid credentials", 400));
+        }
+
+        sendTokenResponse(user, 200, res);
+    } catch (error) {
+        console.error(error); // Log error for debugging
+        next(error);
+    }
+}
+
+// Send token response
+const sendTokenResponse = (user, codeStatus, res) => {
+    const token = user.getJwtToken();
+    res
+        .status(codeStatus)
+        .cookie('token', token, { maxAge: 60 * 60 * 1000, httpOnly: true })
+        .json({
+            success: true,
+            role: user.role
+        });
+}
+
+// Log out user
+exports.logout = (req, res, next) => {
+    res.clearCookie('token');
+    res.status(200).json({
+        success: true,
+        message: "Logged out"
+    });
+}
+
+// Get user profile
+exports.userProfile = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return next(new ErrorResponse("User not found", 404));
+        }
+        res.status(200).json({
+            success: true,
+            user
+        });
+    } catch (error) {
+        console.error(error); // Log error for debugging
+        next(error);
+    }
+}
+
+// Get all users
+exports.allUsers = async (req, res, next) => {
+    try {
+        const users = await User.find();
+        res.status(200).json({ success: true, users });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Get a single user by ID
 exports.singleUser = async (req, res, next) => {
     try {
         const user = await User.findById(req.params.id);
-        res.status(200).json({
-            success: true,
-            user
-        })
-        next();
-
+        if (!user) {
+            return next(new ErrorResponse('User not found', 404));
+        }
+        res.status(200).json({ success: true, user });
     } catch (error) {
-        return next(error);
+        next(error);
     }
-}
+};
 
-
-//edit user
+// Edit user details by ID
 exports.editUser = async (req, res, next) => {
     try {
-        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.status(200).json({
-            success: true,
-            user
-        })
-        next();
-
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        if (!user) {
+            return next(new ErrorResponse('User not found', 404));
+        }
+        res.status(200).json({ success: true, user });
     } catch (error) {
-        return next(error);
+        next(error);
     }
-}
+};
 
-//delete user
+// Delete a user by ID
 exports.deleteUser = async (req, res, next) => {
     try {
-        const user = await User.findByIdAndRemove(req.params.id);
-        res.status(200).json({
-            success: true,
-            message: "user deleted"
-        })
-        next();
-
-    } catch (error) {
-        return next(error);
-    }
-}
-
-
-//jobs history
-exports.createUserJobsHistory = async (req, res, next) => {
-    const { title, description, salary, location } = req.body;
-
-    try {
-        const currentUser = await User.findOne({ _id: req.user._id });
-        if (!currentUser) {
-            return next(new ErrorResponse("You must log In", 401));
-        } else {
-            const addJobHistory = {
-                title,
-                description,
-                salary,
-                location,
-                user: req.user._id
-            }
-            currentUser.jobsHistory.push(addJobHistory);
-            await currentUser.save();
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return next(new ErrorResponse('User not found', 404));
         }
-
-        res.status(200).json({
-            success: true,
-            currentUser
-        })
-        next();
-
+        res.status(200).json({ success: true, message: 'User deleted' });
     } catch (error) {
-        return next(error);
+        next(error);
     }
-}
+};
 
+// Create or update user job history
+exports.createUserJobsHistory = async (req, res, next) => {
+    try {
+        const { title, description, salary, location, interviewDate, applicationStatus } = req.body;
+        const jobHistory = await User.findByIdAndUpdate(
+            req.user.id,
+            { $push: { jobsHistory: { title, description, salary, location, interviewDate, applicationStatus } } },
+            { new: true }
+        );
+        res.status(200).json({ success: true, jobHistory });
+    } catch (error) {
+        next(error);
+    }
+};
 
-
-
-
-
-
-
+// Add any other user-related functions as needed...
