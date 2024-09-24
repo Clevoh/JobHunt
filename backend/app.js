@@ -4,47 +4,38 @@ const mongoose = require("mongoose");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 require("dotenv").config();
-var cors = require('cors');
-
-
-// import routes
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const jobTypeRoute = require('./routes/jobsTypeRoutes');
-const jobRoute = require('./routes/jobsRoutes');
-
+const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const errorHandler = require("./middleware/error");
 
-//database connection
-mongoose.connect(process.env.DATABASE, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-    .then(() => console.log("DB connected"))
-    .catch((err) => console.log(err));
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const jobTypeRoutes = require('./routes/jobsTypeRoutes');
+const jobRoutes = require('./routes/jobsRoutes'); // Ensure correct naming
 
-//MIDDLEWARE
+// Database connection
+mongoose.connect(process.env.DATABASE)
+    .then(() => console.log("DB connected"))
+    .catch((err) => console.log("Database connection error:", err));
+
+// Middleware
 app.use(morgan('dev'));
 app.use(bodyParser.json({ limit: "5mb" }));
-app.use(bodyParser.urlencoded({
-    limit: "5mb",
-    extended: true
-}));
+app.use(bodyParser.urlencoded({ limit: "5mb", extended: true }));
 app.use(cookieParser());
 app.use(cors());
 
-
-//ROUTES MIDDLEWARE
+// Routes middleware
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
-app.use('/api', jobTypeRoute);
-app.use('/api', jobRoute);
+app.use('/api', jobTypeRoutes);
+app.use('/api', jobRoutes); // Ensure this is included
 
-// error middleware
+// Error middleware
 app.use(errorHandler);
 
-//port
+// Start the server
 const port = process.env.PORT || 9000;
 
 app.listen(port, () => {

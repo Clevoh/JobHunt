@@ -3,19 +3,18 @@ const router = express.Router();
 const { createJob, singleJob, updateJob, showJobs } = require('../controllers/jobsController');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 
+// Jobs Routes
 
-
-//jobs routes
-
-// /api/job/create
+// Route to create a job (admin only)
 router.post('/job/create', isAuthenticated, isAdmin, createJob);
-// /api/job/id
+
+// Route to get a single job by its ID (public)
 router.get('/job/:id', singleJob);
-// /api/job/update/job_id
+
+// Route to update a job by job ID (admin only)
 router.put('/job/update/:job_id', isAuthenticated, isAdmin, updateJob);
-// /api/jobs/show
-router.get('/jobs/show', showJobs);
 
-
+// Route to show all jobs (public)
+router.get('/jobs', showJobs);
 
 module.exports = router;
