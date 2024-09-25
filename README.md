@@ -32,7 +32,7 @@ Clone the repository:
 
 bash
 Copy code
-git clone https://github.com/yourusername/social-media-dashboard.git
+git clone [https://github.com/yourusername/social-media-dashboard.git](https://github.com/Clevoh/JobHunt)
 Navigate to the project directory:
 
 bash
